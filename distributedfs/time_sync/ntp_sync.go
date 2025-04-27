@@ -1,17 +1,32 @@
 package time_sync
 
 import (
-	"log"
 	"time"
+
+	"log"
 
 	"github.com/beevik/ntp"
 )
 
-func SyncTime() time.Time {
-	time, err := ntp.Time("0.beevik-ntp.pool.ntp.org")
-	if err != nil {
-		log.Println("Failed to sync NTP time:", err)
-		return time.Now()
+var ClockSkew time.Duration
+
+func SyncClock() {
+	ntpServer := "0.beevik-ntp.pool.ntp.org"
+
+	for {
+		time.Sleep(30 * time.Second)
+
+		resp, err := ntp.Query(ntpServer)
+		if err != nil {
+			log.Println("❌ Failed to sync NTP:", err)
+			continue
+		}
+
+		ClockSkew = resp.ClockOffset
+		log.Println("⏰ Synced clock skew:", ClockSkew)
 	}
-	return time
+}
+
+func GetCorrectedTime() time.Time {
+	return time.Now().Add(ClockSkew)
 }

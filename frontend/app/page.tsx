@@ -2,166 +2,193 @@
 
 import React, { useEffect, useState } from 'react'
 
-const API_BASE = 'http://localhost:8000'
+const NODES = [
+  'http://localhost:8000',
+  'http://localhost:8001',
+  'http://localhost:8002',
+];
 
 export default function Home() {
-  const [files, setFiles] = useState<string[]>([])
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const [stats, setStats] = useState<{ totalFiles: number, totalBytes: number, quotaBytes: number } | null>(null)
-  const [replicaStatus, setReplicaStatus] = useState<Record<string, boolean>>({})
-  const [leader, setLeader] = useState<string>('Loading...')
+  const [files, setFiles] = useState<string[]>([]);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [stats, setStats] = useState<{ totalFiles: number, totalBytes: number, quotaBytes: number } | null>(null);
+  const [replicaStatus, setReplicaStatus] = useState<Record<string, boolean>>({});
+  const [leaderName, setLeaderName] = useState<string>('Loading...');
+  const [leaderURL, setLeaderURL] = useState<string>('');
 
   const [clocks, setClocks] = useState([
     { node: 'A', clock: 0 },
     { node: 'B', clock: 0 }
-  ])
+  ]);
 
   useEffect(() => {
-    fetchFiles()
-    fetchStats()
-    checkReplicas()
-    fetchLeader()
+    checkReplicas();
+    findLeader();
 
     const interval = setInterval(() => {
-      checkReplicas()
-      fetchLeader()
-    }, 5000)
+      checkReplicas();
+      findLeader();
+    }, 5000);
 
     const tick = setInterval(() => {
-      setClocks(prev => prev.map(c => ({ ...c, clock: c.clock + 1 })))
-    }, 3000)
+      setClocks(prev => prev.map(c => ({ ...c, clock: c.clock + 1 })));
+    }, 3000);
 
     return () => {
-      clearInterval(interval)
-      clearInterval(tick)
-    }
-  }, [])
+      clearInterval(interval);
+      clearInterval(tick);
+    };
+  }, []);
 
-  const fetchLeader = async () => {
-    try {
-      const res = await fetch(`${API_BASE}/leader`)
-      const text = await res.text()
-      setLeader(text)
-    } catch {
-      setLeader('Unknown')
+  useEffect(() => {
+    if (leaderURL) {
+      fetchFiles();
+      fetchStats();
     }
-  }
+  }, [leaderURL]);
+
+  const findLeader = async () => {
+    for (const node of NODES) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+        const res = await fetch(node + "/leader", { signal: controller.signal });
+        clearTimeout(timeoutId);
+
+        if (res.ok) {
+          const text = await res.text();
+          if (text.includes(node.replace('http://localhost:', ''))) {
+            setLeaderURL(node);
+          }
+          setLeaderName(text);
+          return;
+        }
+      } catch (err) {
+        console.warn(`❌ Failed to fetch leader from ${node}`);
+      }
+    }
+    setLeaderName('Unknown');
+  };
 
   const fetchFiles = async () => {
+    if (!leaderURL) return;
     try {
-      const res = await fetch(`${API_BASE}/files`)
-      const data = await res.json()
-      setFiles(data)
+      const res = await fetch(`${leaderURL}/files`);
+      const data = await res.json();
+      setFiles(data || []);
     } catch (err) {
-      console.error('❌ Failed to fetch files', err)
+      console.error('❌ Failed to fetch files', err);
+      setFiles([]);
     }
-  }
+  };
 
   const fetchStats = async () => {
+    if (!leaderURL) return;
     try {
-      const res = await fetch(`${API_BASE}/stats`)
-      const data = await res.json()
-      setStats(data)
+      const res = await fetch(`${leaderURL}/stats`);
+      const data = await res.json();
+      setStats(data);
     } catch (err) {
-      console.error('❌ Failed to fetch stats', err)
+      console.error('❌ Failed to fetch stats', err);
+      setStats(null);
     }
-  }
+  };
 
   const checkReplicas = async () => {
-    const replicas = ["http://localhost:8001", "http://localhost:8002"]
-    const status: Record<string, boolean> = {}
-
-    for (const url of replicas) {
+    const status: Record<string, boolean> = {};
+    for (const url of NODES) {
       try {
-        const res = await fetch(`${url}/health`)
-        status[url] = res.ok
+        const res = await fetch(`${url}/health`);
+        status[url] = res.ok;
       } catch {
-        status[url] = false
+        status[url] = false;
       }
     }
-
-    setReplicaStatus(status)
-  }
+    setReplicaStatus(status);
+  };
 
   const handleUpload = async () => {
-    if (!selectedFile) return alert('Please select a file')
+    if (!selectedFile) return alert('Please select a file');
+    if (!leaderURL) return alert('No leader available');
 
-    const formData = new FormData()
-    formData.append('file', selectedFile)
+    const formData = new FormData();
+    formData.append('file', selectedFile);
 
     try {
-      const res = await fetch(`${API_BASE}/upload`, {
+      const res = await fetch(`${leaderURL}/upload`, {
         method: 'POST',
         body: formData,
-      })
+      });
       if (res.ok) {
-        alert('✅ File uploaded')
-        fetchFiles()
-        fetchStats()
+        alert('✅ File uploaded');
+        fetchFiles();
+        fetchStats();
       } else {
-        alert('❌ Upload failed')
+        alert('❌ Upload failed');
       }
     } catch (err) {
-      alert('❌ Upload error')
-      console.error(err)
+      alert('❌ Upload error');
+      console.error(err);
     }
-  }
+  };
 
   const handleDownload = (filename: string) => {
-    window.open(`${API_BASE}/download?name=${filename}`, '_blank')
-  }
+    if (!leaderURL) return;
+    window.open(`${leaderURL}/download?name=${filename}`, '_blank');
+  };
 
   const handleDelete = async (filename: string) => {
+    if (!leaderURL) return;
     try {
-      const res = await fetch(`${API_BASE}/delete?name=${filename}`, {
-        method: 'DELETE',
-      })
+      const res = await fetch(`${leaderURL}/delete?name=${filename}`, { method: 'DELETE' });
       if (res.ok) {
-        fetchFiles()
-        fetchStats()
+        fetchFiles();
+        fetchStats();
       }
     } catch (err) {
-      console.error('❌ Failed to delete file', err)
+      console.error('❌ Failed to delete file', err);
     }
-  }
+  };
 
   const sendMessage = (from: string, to: string) => {
     setClocks(prev => {
-      const fromClock = prev.find(c => c.node === from)?.clock ?? 0
+      const fromClock = prev.find(c => c.node === from)?.clock ?? 0;
       return prev.map(c => {
         if (c.node === to) {
-          return { ...c, clock: Math.max(c.clock, fromClock) + 1 }
+          return { ...c, clock: Math.max(c.clock, fromClock) + 1 };
         }
-        return c
-      })
-    })
-  }
+        return c;
+      });
+    });
+  };
 
   return (
     <main style={{
       padding: '2rem',
       fontFamily: 'Arial, sans-serif',
-      maxWidth: '800px',
+      maxWidth: '900px',
       margin: '0 auto',
-      lineHeight: 1.6
+      background: '#fafafa'
     }}>
-      <h1 style={{ fontSize: '2rem', marginBottom: '1rem', textAlign: 'center' }}>
-        📁 Distributed File System UI
+      <h1 style={{ fontSize: '2.2rem', marginBottom: '2rem', textAlign: 'center' }}>
+        📁 Distributed File System
       </h1>
 
-      {/* 🧠 Leader Info */}
-      <div style={{
-        marginBottom: '1.5rem',
+      {/* Leader Info */}
+      <section style={{
+        marginBottom: '2rem',
         padding: '1rem',
-        background: '#e3f7d3',
-        border: '1px solid #b5e07a',
-        borderRadius: '5px'
+        background: '#e8f5e9',
+        border: '1px solid #c8e6c9',
+        borderRadius: '6px',
+        textAlign: 'center'
       }}>
-        <strong>👑 Current Leader:</strong> {leader}
-      </div>
+        <strong>👑 Current Leader:</strong> {leaderName}
+      </section>
 
       {/* Upload */}
-      <section style={{ marginBottom: '2rem' }}>
+      <section style={{ marginBottom: '2rem', textAlign: 'center' }}>
         <h2>📤 Upload File</h2>
         <input type="file" onChange={(e) => setSelectedFile(e.target.files?.[0] || null)} />
         <button
@@ -171,9 +198,10 @@ export default function Home() {
             background: '#4caf50',
             color: 'white',
             border: 'none',
-            padding: '0.5rem 1rem',
-            borderRadius: '5px',
-            cursor: 'pointer'
+            padding: '0.6rem 1.2rem',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontWeight: 'bold'
           }}
         >
           Upload
@@ -184,21 +212,28 @@ export default function Home() {
       <section style={{ marginBottom: '2rem' }}>
         <h2>📦 Storage Usage</h2>
         {stats ? (
-          <>
+          <div style={{
+            background: '#fff',
+            padding: '1rem',
+            borderRadius: '6px',
+            boxShadow: '0 0 8px rgba(0,0,0,0.1)'
+          }}>
             <p>Total Files: {stats.totalFiles}</p>
-            <p>
-              Used: {(stats.totalBytes / 1024 / 1024).toFixed(2)} MB /
-              {(stats.quotaBytes / 1024 / 1024)} MB
-            </p>
-            <div style={{ height: '12px', background: '#ddd', borderRadius: '4px' }}>
+            <p>Used: {(stats.totalBytes / 1024 / 1024).toFixed(2)} MB / {(stats.quotaBytes / 1024 / 1024)} MB</p>
+            <div style={{
+              background: '#ccc',
+              height: '10px',
+              borderRadius: '5px',
+              marginTop: '0.5rem'
+            }}>
               <div style={{
                 width: `${(stats.totalBytes / stats.quotaBytes) * 100}%`,
-                height: '100%',
+                height: '10px',
                 background: '#4caf50',
-                borderRadius: '4px'
+                borderRadius: '5px'
               }} />
             </div>
-          </>
+          </div>
         ) : <p>Loading stats...</p>}
       </section>
 
@@ -207,7 +242,10 @@ export default function Home() {
         <h2>🔁 Replica Status</h2>
         <ul>
           {Object.entries(replicaStatus).map(([url, alive]) => (
-            <li key={url} style={{ color: alive ? 'green' : 'red' }}>
+            <li key={url} style={{
+              color: alive ? 'green' : 'red',
+              marginBottom: '0.5rem'
+            }}>
               {url}: {alive ? '✅ ALIVE' : '❌ OFFLINE'}
             </li>
           ))}
@@ -217,9 +255,11 @@ export default function Home() {
       {/* File List */}
       <section style={{ marginBottom: '2rem' }}>
         <h2>📄 Available Files</h2>
-        {files.length === 0 ? <p>No files found.</p> : (
-          <ul>
-            {files.map((file) => (
+        {files.length === 0 ? (
+          <p>No files found.</p>
+        ) : (
+          <ul style={{ padding: 0 }}>
+            {files.map(file => (
               <li key={file} style={{
                 display: 'flex',
                 justifyContent: 'space-between',
@@ -229,10 +269,25 @@ export default function Home() {
               }}>
                 <span>{file}</span>
                 <span>
-                  <button onClick={() => handleDownload(file)} style={{ marginRight: '1rem' }}>
+                  <button onClick={() => handleDownload(file)} style={{
+                    marginRight: '1rem',
+                    background: '#2196f3',
+                    color: 'white',
+                    padding: '0.4rem 0.8rem',
+                    borderRadius: '4px',
+                    border: 'none',
+                    cursor: 'pointer'
+                  }}>
                     Download
                   </button>
-                  <button onClick={() => handleDelete(file)} style={{ color: 'red' }}>
+                  <button onClick={() => handleDelete(file)} style={{
+                    background: '#f44336',
+                    color: 'white',
+                    padding: '0.4rem 0.8rem',
+                    borderRadius: '4px',
+                    border: 'none',
+                    cursor: 'pointer'
+                  }}>
                     Delete
                   </button>
                 </span>
@@ -242,8 +297,14 @@ export default function Home() {
         )}
       </section>
 
-      {/* Lamport Clock UI */}
-      <section style={{ marginBottom: '2rem', padding: '1rem', border: '1px solid #ddd', borderRadius: '6px' }}>
+      {/* Lamport Clock */}
+      <section style={{
+        marginBottom: '2rem',
+        padding: '1rem',
+        border: '1px solid #ddd',
+        borderRadius: '6px',
+        background: '#fff'
+      }}>
         <h2>🕒 Lamport Clock Simulation</h2>
         {clocks.map(c => (
           <p key={c.node}><strong>Node {c.node}</strong>: Clock = {c.clock}</p>
