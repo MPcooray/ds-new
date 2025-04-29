@@ -1,25 +1,20 @@
 📁 Distributed File System
+
 A fault-tolerant, time-synchronized, and replicated distributed file system built as part of our Distributed Systems coursework.
 
-Name           | Responsibility
-Manula Cooray  | Fault Tolerance & Replication
-Dinethmin       | Time Synchronization (NTP, Lamport Clock)
-Nipun          | Consensus & Leader Election (Raft)
-Yomal       | Frontend & Integration
+Member 																| Responsibility
+Manula Cooray -IT23194830							| Fault Tolerance (Redundancy, Failure Detection, Recovery)
+Dinethmin Uduwelaraachchi-IT23172814	| Data Replication and Consistency (Replication strategy, Consistency model)
+Nipun Meegoda - IT23283626						| Time Synchronization (NTP sync, Lamport Clock)
+Kaveesha Yomal - IT23372962 					| Consensus and Leader Election (Raft Consensus + Failover)
 ----------------------------------------------------------------------------------------------------------------------------------
 🛠 Tech Stack
 Language: Go (Golang) - Backend
-
 Framework: Next.js 15 (React) - Frontend
-
 Communication: REST API (HTTP)
-
 Consensus: Raft-inspired Leader Election
-
 Replication: Primary Leader with Auto-Recovery
-
 Time Sync: NTP-based sync + Lamport Logical Clock
-
 Fault Tolerance: Auto-replication and node recovery
 ---------------------------------------------------------------------------------------------------------------------------------
 🗂 Folder Structure
