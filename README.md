@@ -1,91 +1,129 @@
-📁 Distributed File System
+# 📂 Distributed File System
 
 A fault-tolerant, time-synchronized, and replicated distributed file system built as part of our Distributed Systems coursework.
 
-Member 																| Responsibility
-Manula Cooray -IT23194830							| Fault Tolerance (Redundancy, Failure Detection, Recovery)
-Dinethmin Uduwelaraachchi-IT23172814	| Data Replication and Consistency (Replication strategy, Consistency model)
-Nipun Meegoda - IT23283626						| Time Synchronization (NTP sync, Lamport Clock)
-Kaveesha Yomal - IT23372962 					| Consensus and Leader Election (Raft Consensus + Failover)
-----------------------------------------------------------------------------------------------------------------------------------
-🛠 Tech Stack
-Language: Go (Golang) - Backend
-Framework: Next.js 15 (React) - Frontend
-Communication: REST API (HTTP)
-Consensus: Raft-inspired Leader Election
-Replication: Primary Leader with Auto-Recovery
-Time Sync: NTP-based sync + Lamport Logical Clock
-Fault Tolerance: Auto-replication and node recovery
----------------------------------------------------------------------------------------------------------------------------------
-🗂 Folder Structure
+---
+
+## 👥 Team Members
+
+| Member | Responsibility |
+| :--- | :--- |
+| Manula Cooray (IT23194830) | Fault Tolerance (Redundancy, Failure Detection, Recovery) |
+| Dinethmin Uduwelaraachchi (IT23172814) | Data Replication and Consistency (Replication strategy, Consistency model) |
+| Nipun Meegoda (IT23283626) | Time Synchronization (NTP Sync, Lamport Clock) |
+| Kaveesha Yomal (IT23372962) | Consensus and Leader Election (Raft Consensus + Failover) |
+
+---
+
+## 🛠️ Tech Stack
+
+- **Language:** Go (Golang) - Backend
+- **Frontend:** Next.js 15 (React) - Frontend UI
+- **Communication:** REST API (HTTP)
+- **Consensus:** Raft-inspired Leader Election
+- **Replication:** Primary Leader with Auto-replication to Replicas
+- **Time Sync:** NTP-based synchronization + Lamport Logical Clock
+- **Fault Tolerance:** Auto-recovery of missing files and heartbeat failure detection
+
+---
+
+## 📂 Folder Structure
+
+```
 distributedfs/
-│
-├── config/              # Configuration files
-├── consensus/           # Leader election (Raft)
-├── fault/               # Fault detection and recovery
-├── proto/               # Proto definitions (future upgrade)
-├── replica1/            # Replica server 1
-├── replica2/            # Replica server 2
-├── storage/             # File manager and replication
-├── storage_data/        # Stored user-uploaded files
-├── time_sync/           # NTP and Lamport Clock
-├── main.go              # Main server application
-├── go.mod / go.sum      # Go module files
-│
-└── frontend/            # React/Next.js frontend
+├── client/         # Client utilities
+├── config/         # Configuration files
+├── consensus/      # Leader election (Raft)
+├── fault/          # Fault detection and recovery
+├── proto/          # Proto definitions (future upgrades)
+├── replica1/       # Replica server 1
+├── replica2/       # Replica server 2
+├── storage/        # File management & replication logic
+├── storage_data/   # Stored user-uploaded files
+├── time_sync/      # NTP sync and Lamport clock
+├── main.go         # Main server application
+├── go.mod / go.sum # Go module files
+└── frontend/       # React + Next.js frontend (UI)
+```
 
+---
 
-⚙️ Setup & Run
-1. Clone the repository
-git clone https://github.com/your-repo-url/distributed-file-system.git
+## ⚙️ Setup & Run
+
+### 1. Clone the repository
+```bash
+git clone https://github.com/<your-repo-here>.git
 cd distributed-file-system
+```
 
-3. Backend Setup (Golang)
-Open three terminals:
-Terminal 1 (Main Server):
-cd distributedfs
+---
+
+### 2. Setup and Run Backend (Replica Servers)
+
+Open **3 Terminals** and run:
+
+#### For Main Server (Port 8000)
+```bash
+cd distributedfs/
 $env:PORT="8000"
 go run main.go
+```
 
-Terminal 2 (Replica 1):
-cd distributedfs
+#### For Replica 1 (Port 8001)
+```bash
+cd distributedfs/
 $env:PORT="8001"
 go run main.go
+```
 
-Terminal 3 (Replica 2):
-cd distributedfs
+#### For Replica 2 (Port 8002)
+```bash
+cd distributedfs/
 $env:PORT="8002"
 go run main.go
+```
 
-✅ Now, three nodes are running (Leader and two Replicas).
+---
 
-3. Frontend Setup (Next.js)
-Open a new terminal:
-cd frontend
+### 3. Setup and Run Frontend (User Interface)
+
+Open a new Terminal:
+```bash
+cd frontend/
 npm install
 npm run dev
+```
 
-Frontend will be available at:
-http://localhost:3000
------------------------------------------------------------------------------------------------------------------------------------
-🧪 Testing
-1.Upload, Download, Delete files
+Frontend will run on: **http://localhost:3000**
 
-2.Test leader failure by killing port 8000/8001
+---
 
-3.Lamport Clock simulation for event ordering
+## 🧪 Testing Features
 
-4.NTP Time synchronization and adjustment
+- ✅ Upload files
+- ✅ File replication across all replicas
+- ✅ Fault detection and recovery
+- ✅ Leader election (Raft simulation)
+- ✅ Auto-recovery if a replica crashes
+- ✅ Time synchronization (NTP, Lamport clocks)
 
-5.Auto recovery when nodes restart
------------------------------------------------------------------------------------------------------------------------------------
+---
 
-📩 Contact & Support
-For issues or doubts:
-Raise a GitHub Issue.
-Contact group members via personal email/WhatsApp.
-Contributions must go through pull requests!
+## ✨ Special Notes
 
-Built with ❤️ by Group 4 for Distributed Systems Module.
+- If a **Leader** (Main server) crashes, a **new leader** is auto-elected using Raft algorithm!
+- **Auto-replication** ensures that file availability is not lost even if some replicas fail.
+- **NTP time synchronization** ensures conflict-free consistent file uploads.
+- Fully **fault-tolerant distributed file system** using simple but effective design.
 
+---
 
+## 📩 Contact & Support
+
+If you have questions, suggestions, or issues:
+- Open an **Issue** on GitHub.
+- Or contact any team member via email.
+
+---
+
+🔥 **Built with passion for Distributed Systems!**
